@@ -1,19 +1,99 @@
-var express = require('express');
-var app = express();
-var AWS = require('aws-sdk');
+var express = require('express')
+var AWS = require('aws-sdk')
+var fs = require('fs')
+var request = require('request')
+var zlib = require('zlib')
+var app = express()
 
-app.set('port', (process.env.PORT || 5000));
-app.use(express.static(__dirname + '/public'));
+//app config
+app.set('port', (process.env.PORT || 5000))
+app.set('aws_bucket', process.env.AWS_BUCKET)
+
+AWS.config.update({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY})
+AWS.config.update({region: process.env.AWS_REGION})
+// end app config
+
+
+app.use(express.static(__dirname + '/public'))
 
 app.get('/', function(request, response) {
-  response.send('Hello World!');
+  response.send('Hello World!')
 });
 
-app.get('/resize/:percent/*', function(req, res) {
-  var original = req.params[0];
-  res.send('OK');
-});
+app.get('/s3/resize/:percent/*', function(req, res) {
+  var s3 = new AWS.S3()
+
+  var rand = Math.random().toString(36).substring(2)
+  var tempfilename = "tmp/" + rand
+  var temp = fs.createWriteStream(tempfilename)
+  var origin = req.params[0]
+
+  //request(origin).pipe(temp)
+  /*request(origin, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+
+      temp.write(response.body);
+      temp.end();
+      
+      
+    }
+  });*/
+
+
+
+
+
+  request({method: 'HEAD', uri: origin}).on('response', function(response) {
+    var etag  = response.headers.etag.replace(/['"]+/g, '')
+    var target = 's3/resize/' + req.params.percent + '/' + etag
+
+    s3.getObject({ Bucket: app.get('aws_bucket'), Key: target }, function(err, data) {
+
+      if (err){
+
+        request({method: 'GET', uri: origin}).on('response', function(response) {
+          var r = response.pipe(temp).on('finish', function(){ 
+            var fileStream = fs.createReadStream(tempfilename);
+            fileStream.on('open', function () {
+              var s3 = new AWS.S3();
+              s3.putObject({
+                Bucket: app.get('aws_bucket'),
+                Key: target,
+                Body: fileStream
+              }, function (err) { if (err) { throw err; } });
+            });
+          })
+          
+        })
+
+
+      } else {
+        console.log(data)
+      }
+    })
+
+    res.send(etag)
+  })
+
+//response.pipe(temp)
+
+
+
+/*
+  var params = {
+    Bucket: app.get('aws_bucket'),
+    Key: '',
+  };
+  s3.getObject(params, function(err, data) {
+    if (err) console.log(err, err.stack); // an error occurred
+    else     console.log(data);           // successful response
+  });
+*/
+
+  
+
+})
 
 app.listen(app.get('port'), function() {
-  console.log("Node app is running at localhost:" + app.get('port'));
-});
+  console.log("Node app is running at localhost:" + app.get('port'))
+})
