@@ -1,5 +1,7 @@
 
 ```sh
+$ brew install gtk-doc swig
+
 $ git clone git@github.com:adastreamer/image-processing.git
 $ cd image-processing
 $ npm install
