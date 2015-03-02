@@ -3,6 +3,7 @@ var AWS = require('aws-sdk')
 var fs = require('fs')
 var request = require('request')
 var zlib = require('zlib')
+var im = require('imagemagick');
 var app = express()
 
 //app config
@@ -20,10 +21,11 @@ app.get('/', function(request, response) {
   response.send('Hello World!')
 });
 
+// resize by percent
 app.get('/s3/resize/:percent/*', function(req, res) {
   var s3 = new AWS.S3()
 
-  var rand = Math.random().toString(36).substring(2)
+  var rand = Math.random().toString(36).substring(2) //random thumb filename
   var tempfilename = "tmp/" + rand
   var temp = fs.createWriteStream(tempfilename)
   var origin = req.params[0]
@@ -49,19 +51,26 @@ app.get('/s3/resize/:percent/*', function(req, res) {
 
     s3.getObject({ Bucket: app.get('aws_bucket'), Key: target }, function(err, data) {
 
-      if (err){
+      if (err){ // if thumb not exists
 
-        request({method: 'GET', uri: origin}).on('response', function(response) {
-          var r = response.pipe(temp).on('finish', function(){ 
-            var fileStream = fs.createReadStream(tempfilename);
-            fileStream.on('open', function () {
-              var s3 = new AWS.S3();
-              s3.putObject({
-                Bucket: app.get('aws_bucket'),
-                Key: target,
-                Body: fileStream
-              }, function (err) { if (err) { throw err; } });
-            });
+        request({method: 'GET', uri: origin}).on('response', function(response) { // get original
+          var r = response.pipe(temp).on('finish', function(){ // on save
+            im.convert([tempfilename, '-resize', '25x120', tempfilename + '_1'],
+              function(err, stdout){
+                if (err) throw err;
+                  console.log('stdout:', stdout);
+                var fileStream = fs.createReadStream(tempfilename + '_1');
+                fileStream.on('open', function () {
+                  var s3 = new AWS.S3();
+                  s3.putObject({
+                    Bucket: app.get('aws_bucket'),
+                    Key: target,
+                    Body: fileStream
+                  }, function (err) { if (err) { throw err; } });
+                });
+              }
+            );
+
           })
           
         })
