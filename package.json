@@ -9,7 +9,8 @@
   "dependencies": {
     "express": "~4.9.x",
     "aws-sdk": "~2.1.14",
-    "request": "~2.53.0"
+    "request": "~2.53.0",
+    "imagemagick": "*"
   },
   "engines": {
     "node": "0.10.x"
