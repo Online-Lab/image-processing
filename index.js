@@ -3,8 +3,13 @@ var AWS = require('aws-sdk')
 var fs = require('fs')
 var request = require('request')
 var zlib = require('zlib')
-var im = require('imagemagick');
+var im = require('imagemagick')
 var app = express()
+
+//app libs
+var settings = require('./app/settings')
+var randlib = require('./app/rand.lib')
+
 
 //app config
 app.set('port', (process.env.PORT || 5000))
@@ -15,18 +20,15 @@ AWS.config.update({region: process.env.AWS_REGION})
 // end app config
 
 
-app.use(express.static(__dirname + '/public'))
+app.use(express.static(__dirname + settings.publicdir))
 
-app.get('/', function(request, response) {
-  response.send('Hello World!')
-});
 
 // resize by percent
 app.get('/s3/resize/:percent/*', function(req, res) {
   var s3 = new AWS.S3()
 
-  var rand = Math.random().toString(36).substring(2) //random thumb filename
-  var tempfilename = "tmp/" + rand
+  var rand = randlib.get() //random thumb filename
+  var tempfilename = settings.tmpdir + rand
   var temp = fs.createWriteStream(tempfilename)
   var origin = req.params[0]
 
@@ -40,10 +42,6 @@ app.get('/s3/resize/:percent/*', function(req, res) {
       
     }
   });*/
-
-
-
-
 
   request({method: 'HEAD', uri: origin}).on('response', function(response) {
     var etag  = response.headers.etag.replace(/['"]+/g, '')
