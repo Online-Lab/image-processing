@@ -7,14 +7,17 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "~4.9.x"
+    "express": "~4.9.x",
+    "aws-sdk": "~2.1.14",
+    "request": "~2.53.0",
+    "imagemagick": "*"
   },
   "engines": {
     "node": "0.10.x"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/heroku/node-js-getting-started"
+    "url": "https://github.com/adastreamer/image-processing.git"
   },
   "keywords": [
     "node",
