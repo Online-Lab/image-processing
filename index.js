@@ -6,65 +6,62 @@ var zlib = require('zlib')
 var im = require('imagemagick')
 var app = express()
 
-//app libs
+//app libs and settings
 var settings = require('./app/settings')
 var randlib = require('./app/rand.lib')
-
+var params = require('./app/params')
 
 //app config
 app.set('port', (process.env.PORT || 5000))
-app.set('aws_bucket', process.env.AWS_BUCKET)
 
-AWS.config.update({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY})
-AWS.config.update({region: process.env.AWS_REGION})
+AWS.config.update({accessKeyId: params.AWS_ACCESS_KEY_ID, secretAccessKey: params.AWS_SECRET_ACCESS_KEY})
+AWS.config.update({region: params.AWS_REGION})
 // end app config
-
 
 app.use(express.static(__dirname + settings.publicdir))
 
-
-// resize by percent
-app.get('/s3/resize/:percent/*', function(req, res) {
+// resize
+app.get('/s3/resize/:params/*', function(req, res) {
   var s3 = new AWS.S3()
 
-  var rand = randlib.get() //random thumb filename
-  var tempfilename = settings.tmpdir + rand
-  var temp = fs.createWriteStream(tempfilename)
   var origin = req.params[0]
+  var imparams = req.params.params
 
-  //request(origin).pipe(temp)
-  /*request(origin, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
+  var ext = '.' + origin.split('.').pop()
+  var protocol = origin.split(":")[0]
 
-      temp.write(response.body);
-      temp.end();
-      
-      
-    }
-  });*/
+  var tempfilename = settings.tmpdir + randlib.get() + ext
+  var resizedfilename = settings.tmpdir + randlib.get() + ext
+  var temp = fs.createWriteStream(tempfilename)
 
   request({method: 'HEAD', uri: origin}).on('response', function(response) {
     var etag  = response.headers.etag.replace(/['"]+/g, '')
-    var target = 's3/resize/' + req.params.percent + '/' + etag
+    if (!etag) throw new Error('not s3 link')
 
-    s3.getObject({ Bucket: app.get('aws_bucket'), Key: target }, function(err, data) {
+    var target = 's3/resize/' + imparams + '/' + etag + ext
+    var ret = protocol + "://s3-" + params.AWS_REGION + ".amazonaws.com/" +  params.AWS_BUCKET + '/' + target;
 
+    s3.headObject({ Bucket: params.AWS_BUCKET, Key: target }, function(err, data) {
       if (err){ // if thumb not exists
 
         request({method: 'GET', uri: origin}).on('response', function(response) { // get original
           var r = response.pipe(temp).on('finish', function(){ // on save
-            im.convert([tempfilename, '-resize', '25x120', tempfilename + '_1'],
+
+            im.convert([tempfilename, '-resize', imparams, resizedfilename],
               function(err, stdout){
                 if (err) throw err;
                   console.log('stdout:', stdout);
-                var fileStream = fs.createReadStream(tempfilename + '_1');
+                var fileStream = fs.createReadStream(resizedfilename);
                 fileStream.on('open', function () {
                   var s3 = new AWS.S3();
                   s3.putObject({
-                    Bucket: app.get('aws_bucket'),
+                    Bucket: params.AWS_BUCKET,
                     Key: target,
                     Body: fileStream
-                  }, function (err) { if (err) { throw err; } });
+                  }, function (err) {
+                    if (err) { throw err; }
+                    res.redirect(ret)
+                  });
                 });
               }
             );
@@ -73,31 +70,11 @@ app.get('/s3/resize/:percent/*', function(req, res) {
           
         })
 
-
-      } else {
-        console.log(data)
+      } else { //if thumb exists, return it
+        res.redirect(ret)
       }
     })
-
-    res.send(etag)
-  })
-
-//response.pipe(temp)
-
-
-
-/*
-  var params = {
-    Bucket: app.get('aws_bucket'),
-    Key: '',
-  };
-  s3.getObject(params, function(err, data) {
-    if (err) console.log(err, err.stack); // an error occurred
-    else     console.log(data);           // successful response
-  });
-*/
-
-  
+  })  
 
 })
 
