@@ -24,7 +24,7 @@ app.use(express.static(__dirname + settings.publicdir))
 app.get('/s3/resize/:params/*', function(req, res) {
   var s3 = new AWS.S3()
 
-  var origin = req.params[0]
+  var origin = encodeURI(req.params[0])
   var imparams = req.params.params
 
   var ext = '.' + origin.split('.').pop()
