@@ -28,7 +28,7 @@ function Origin (origin) {
     this.tempfilename = this.generateRand()
     this.resizedfilename = this.generateRand()
 }
-
+// some helpers
 Origin.prototype.HEAD = function(callback) {
     request({method: 'HEAD', uri: this.url}).on('response', callback);
 }
@@ -36,8 +36,10 @@ Origin.prototype.getETag = function(response){
     this.etag = response.headers.etag.replace(/['"]+/g, '')
     return this.etag
 }
+//
 
 
+// S3 type
 Origin.prototype.getS3Target = function(imparams, etag) {
     this.s3Target = 's3/resize/' + imparams + '/' + etag + this.ext
     return this.s3Target
@@ -58,13 +60,11 @@ Origin.prototype.processS3 = function(imparams, callback) {
 
     s3.headObject({ Bucket: params.AWS_BUCKET, Key: target }, function(err, data){
         if (err){ // if thumb not exists
-
             request({method: 'GET', uri: $this.url}).on('response', function(response) { // get original
                 var r = response.pipe(temp).on('finish', function(){ // on save
                     im.convert([$this.tempfilename, '-resize', imparams, $this.resizedfilename], function(err, stdout){
                         var fileStream = fs.createReadStream($this.resizedfilename);
                         fileStream.on('open', function () {
-                            var s3 = new AWS.S3();
                             s3.putObject({
                                 Bucket: params.AWS_BUCKET,
                                 Key: target,
@@ -77,13 +77,21 @@ Origin.prototype.processS3 = function(imparams, callback) {
                     });
                 });
             });
-
         } else { // if thumb exists, return it
             callback(encodeURI(ret));
         }
     })
-    
 }
+//
+
+// Usual type
+Origin.prototype.processUsual = function(imparams, callback) {
+    // overrides
+    var $this = this
+
+    callback(encodeURI($this.url));
+}
+//
 
 // end Origin class
 

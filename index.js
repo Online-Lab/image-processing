@@ -1,14 +1,9 @@
 var express = require('express')
 var AWS = require('aws-sdk')
-var fs = require('fs')
-var request = require('request')
-var zlib = require('zlib')
-var im = require('imagemagick')
 var app = express()
 
 //app libs and settings
 var settings = require('./app/settings')
-var randlib = require('./app/rand.lib')
 var params = require('./app/params')
 var helper = require('./app/helper')
 
@@ -32,13 +27,13 @@ app.get('/get/:params/*', function(req, res) {
     var etag  = origin.getETag(response)
 
     if (!etag) { // usual image
-      throw new Error('not s3 link') 
+      origin.processUsual(imparams, function(retUrl){
+        res.redirect(retUrl)
+      })      
     } else { // amazon image with hash in headers
-
       origin.processS3(imparams, function(retUrl){
         res.redirect(retUrl)
       })
-
     }
   })  
 
