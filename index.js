@@ -60,7 +60,7 @@ app.get('/s3/resize/:params/*', function(req, res) {
                     Body: fileStream
                   }, function (err) {
                     if (err) { throw err; }
-                    res.redirect(ret)
+                    res.redirect(encodeURI(ret))
                   });
                 });
               }
@@ -71,7 +71,7 @@ app.get('/s3/resize/:params/*', function(req, res) {
         })
 
       } else { //if thumb exists, return it
-        res.redirect(ret)
+        res.redirect(encodeURI(ret))
       }
     })
   })  
