@@ -28,18 +28,46 @@ app.get('/get/:params/*', function(req, res) {
   var origin = new helper.Origin(req.params[0])
   var imparams = req.params.params
 
+  var processByUrl = function(response) {
+    try{
+      origin.processUsual(response, imparams, function(retUrl){
+        res.redirect(retUrl)
+      })
+    } catch (exception_var) {
+      console.log(exception_var);
+    }
+  }
+  var processUsual = function(response) {
+    try{
+      origin.processUsual(response, imparams, function(retUrl){
+        res.redirect(retUrl)
+      })
+    } catch (exception_var) {
+      console.log(exception_var);
+      processByUrl()
+    }
+  }
+  var processS3 = function(response) {
+    try{
+      origin.processS3(response, imparams, function(retUrl){
+        res.redirect(retUrl)
+      })
+    } catch (exception_var) {
+      console.log(exception_var);
+      processUsual()
+    }
+  }
+
   origin.HEAD(function(response) {
     
     var etag  = origin.getETag(response)
 
-    if (!etag) { // usual image
-      origin.processUsual(response, imparams, function(retUrl){
-        res.redirect(retUrl)
-      })      
-    } else { // amazon image with hash in headers
-      origin.processS3(response, imparams, function(retUrl){
-        res.redirect(retUrl)
-      })
+    if (etag) {
+      processS3(response)
+    } else if (response.headers['content-length']) { // amazon image with hash in headers
+      processUsual(response)
+    } else {
+      processByUrl(response)
     }
   })  
 

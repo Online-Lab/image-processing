@@ -56,31 +56,37 @@ Origin.prototype.HEAD = function(callback) {
     request({method: 'HEAD', uri: this.url}).on('response', callback);
 }
 Origin.prototype.getETag = function(response){
-    this.etag = checksum((response.headers.etag || '').replace(/['"]+/g, ''))
+    this.etag = response.headers.etag ? checksum((response.headers.etag || '').replace(/['"]+/g, '')) : ''
     return this.etag
 }
-Origin.prototype.generateThumb = function(imparams, target, callback, ret){
+Origin.prototype.generateOrGetThumb = function(imparams, target, callback, ret){
     var $this = this
 
     var temp = fs.createWriteStream($this.tempfilename)
 
-    request({method: 'GET', uri: $this.url}).on('response', function(response) { // get original
-        var r = response.pipe(temp).on('finish', function(){ // on save
-            im.convert([$this.tempfilename, '-resize', imparams, $this.resizedfilename], function(err, stdout){
-                var fileStream = fs.createReadStream($this.resizedfilename);
-                fileStream.on('open', function () {
-                    s3.putObject({
-                        Bucket: params.AWS_BUCKET,
-                        Key: target,
-                        Body: fileStream
-                    }, function (err) {
-                      if (err) { throw err; }
-                      callback(encodeURI(ret));
+    s3.headObject({ Bucket: params.AWS_BUCKET, Key: target }, function(err, data){
+        if (err){ // if thumb not exists
+            request({method: 'GET', uri: $this.url}).on('response', function(response) { // get original
+                var r = response.pipe(temp).on('finish', function(){ // on save
+                    im.convert([$this.tempfilename, '-resize', imparams, $this.resizedfilename], function(err, stdout){
+                        var fileStream = fs.createReadStream($this.resizedfilename);
+                        fileStream.on('open', function () {
+                            s3.putObject({
+                                Bucket: params.AWS_BUCKET,
+                                Key: target,
+                                Body: fileStream
+                            }, function (err) {
+                              if (err) { throw err; }
+                              callback(encodeURI(ret));
+                            });
+                        });
                     });
                 });
             });
-        });
-    });
+        } else { // if thumb exists, return it
+            callback(encodeURI(ret));
+        }
+    })
 }
 //
 
@@ -103,13 +109,7 @@ Origin.prototype.processS3 = function(headResponse, imparams, callback) {
     var target = $this.getTarget(imparams, $this.etag)
     var ret = $this.getRetUrl()
 
-    s3.headObject({ Bucket: params.AWS_BUCKET, Key: target }, function(err, data){
-        if (err){ // if thumb not exists
-            $this.generateThumb(imparams, target, callback, ret)
-        } else { // if thumb exists, return it
-            callback(encodeURI(ret));
-        }
-    })
+    $this.generateOrGetThumb(imparams, target, callback, ret)
 }
 //
 
@@ -136,20 +136,26 @@ Origin.prototype.processUsual = function(headResponse, imparams, callback) {
     )
 
     request({method: 'GET', uri: $this.url, headers: {Range: range}}, function(error, response, body) { // get some bytes to generate hash
-
-        var hash = checksum(pack(response))
+        var hash = checksum(pack(body))
 
         var target = $this.getTarget(imparams, hash)
         var ret = $this.getRetUrl()
 
-        s3.headObject({ Bucket: params.AWS_BUCKET, Key: target }, function(err, data){
-            if (err){ // if thumb not exists
-                $this.generateThumb(imparams, target, callback, ret)
-            } else { // if thumb exists, return it
-                callback(encodeURI(ret));
-            }
-        })
+        $this.generateOrGetThumb(imparams, target, callback, ret)
     });
+}
+
+// Usual type
+Origin.prototype.processByUrl = function(headResponse, imparams, callback) {
+    // overrides
+    var $this = this
+
+    var hash = checksum($this.url)
+
+    var target = $this.getTarget(imparams, hash)
+    var ret = $this.getRetUrl()
+
+    $this.generateOrGetThumb(imparams, target, callback, ret)
 }
 //
 
