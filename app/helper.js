@@ -56,7 +56,7 @@ Origin.prototype.HEAD = function(callback) {
     request({method: 'HEAD', uri: this.url}).on('response', callback);
 }
 Origin.prototype.getETag = function(response){
-    this.etag = (response.headers.etag || '').replace(/['"]+/g, '')
+    this.etag = checksum((response.headers.etag || '').replace(/['"]+/g, ''))
     return this.etag
 }
 Origin.prototype.generateThumb = function(imparams, target, callback, ret){
