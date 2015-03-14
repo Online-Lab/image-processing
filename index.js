@@ -16,6 +16,12 @@ AWS.config.update({region: params.AWS_REGION})
 
 app.use(express.static(__dirname + settings.publicdir))
 
+
+// resize by percent
+app.get('/get/percent/:value/*', function(req, res) {
+  res.redirect(encodeURI('/get/' + req.params.value + '%/' + req.params[0]))
+})
+
 // resize
 app.get('/get/:params/*', function(req, res) {
 
@@ -38,6 +44,7 @@ app.get('/get/:params/*', function(req, res) {
   })  
 
 })
+
 
 app.listen(app.get('port'), function() {
   console.log("Node app is running at localhost:" + app.get('port'))
