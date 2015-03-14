@@ -74,7 +74,8 @@ Origin.prototype.generateOrGetThumb = function(imparams, target, callback, ret){
                             s3.putObject({
                                 Bucket: params.AWS_BUCKET,
                                 Key: target,
-                                Body: fileStream
+                                Body: fileStream,
+                                ContentType: response.headers['content-type']
                             }, function (err) {
                               if (err) { throw err; }
                               callback(encodeURI(ret));
