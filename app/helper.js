@@ -33,7 +33,7 @@ Origin.prototype.HEAD = function(callback) {
     request({method: 'HEAD', uri: this.url}).on('response', callback);
 }
 Origin.prototype.getETag = function(response){
-    this.etag = response.headers.etag.replace(/['"]+/g, '')
+    this.etag = (response.headers.etag || '').replace(/['"]+/g, '')
     return this.etag
 }
 //
@@ -41,7 +41,7 @@ Origin.prototype.getETag = function(response){
 
 // S3 type
 Origin.prototype.getS3Target = function(imparams, etag) {
-    this.s3Target = 's3/resize/' + imparams + '/' + etag + this.ext
+    this.s3Target = imparams + '/' + etag + this.ext
     return this.s3Target
 }
 Origin.prototype.getS3RetUrl = function() {
@@ -85,6 +85,14 @@ Origin.prototype.processS3 = function(imparams, callback) {
 //
 
 // Usual type
+Origin.prototype.getUsualTarget = function(imparams, etag) {
+    this.usualTarget = imparams + '/' + etag + this.ext
+    return this.usualTarget
+}
+Origin.prototype.getUsualRetUrl = function() {
+    this.usualRetUrl =  this.protocol + "://s3-" + params.AWS_REGION + ".amazonaws.com/" +  params.AWS_BUCKET + '/' + this.usualTarget
+    return this.usualRetUrl
+}
 Origin.prototype.processUsual = function(imparams, callback) {
     // overrides
     var $this = this
