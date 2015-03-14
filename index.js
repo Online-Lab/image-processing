@@ -33,12 +33,11 @@ app.get('/get/:params/*', function(req, res) {
     var etag  = origin.getETag(response)
 
     if (!etag) { // usual image
-      origin.processUsual(imparams, function(retUrl){
-        //res.redirect(retUrl)
-        res.send(retUrl)
+      origin.processUsual(response, imparams, function(retUrl){
+        res.redirect(retUrl)
       })      
     } else { // amazon image with hash in headers
-      origin.processS3(imparams, function(retUrl){
+      origin.processS3(response, imparams, function(retUrl){
         res.redirect(retUrl)
       })
     }
