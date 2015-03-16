@@ -75,7 +75,8 @@ Origin.prototype.generateOrGetThumb = function(imparams, target, callback, ret){
                                 Bucket: params.AWS_BUCKET,
                                 Key: target,
                                 Body: fileStream,
-                                ContentType: response.headers['content-type']
+                                ContentType: response.headers['content-type'],
+                                ContentDisposition: response.headers['content-disposition'] || 'inline',
                             }, function (err) {
                               if (err) { throw err; }
                               callback(encodeURI(ret));
