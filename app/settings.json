@@ -1,4 +1,5 @@
 {
 	"tmpdir": "tmp/",
-	"publicdir": "/public"
+	"publicdir": "/public",
+    "mongo_collection": "images"
 }
