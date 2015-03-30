@@ -2,12 +2,14 @@ var MongoClient = require('mongodb').MongoClient
   , assert = require('assert');
 var params = require('./params');
 var settings = require('./settings');
+var moment = require('moment');
 
 // Connection URL
 var mongo_url = params.MONGO_URL;
 
 var write = function(req){
     var obj = {
+        moment: moment().format(),
         url: req.url,
         headers: req.headers 
     };
