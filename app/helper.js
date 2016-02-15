@@ -98,7 +98,7 @@ Origin.prototype.getTarget = function(imparams, etag) {
     return this.target
 }
 Origin.prototype.getRetUrl = function() {
-    this.retUrl =  this.protocol + "://s3-" + params.AWS_REGION + ".amazonaws.com/" +  params.AWS_BUCKET + '/' + this.target
+    this.retUrl =  "https://s3-" + params.AWS_REGION + ".amazonaws.com/" +  params.AWS_BUCKET + '/' + this.target
     return this.retUrl
 }
 
