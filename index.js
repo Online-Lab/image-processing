@@ -72,7 +72,7 @@ app.get('/get/:params/*', function(req, res) {
     }
   })  
 
-  stat.write(req);
+  // stat.write(req);
 
 })
 
