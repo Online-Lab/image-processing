@@ -20,11 +20,16 @@ app.use(express.static(__dirname + settings.publicdir))
 
 // resize by percent
 app.get('/get/percent/:value/*', function(req, res) {
-  res.redirect(encodeURI('/get/' + req.params.value + '%/' + req.params[0]))
+  try{
+    res.redirect(encodeURI('/get/' + req.params.value + '%/' + req.params[0]))
+  } catch(e){
+    res.sendStatus(500);
+  }
 })
 
 // resize
 app.get('/get/:params/*', function(req, res) {
+  try{
 
   var origin = new helper.Origin(req.params[0])
   var imparams = req.params.params
@@ -73,7 +78,9 @@ app.get('/get/:params/*', function(req, res) {
   })  
 
   // stat.write(req);
-
+  } catch (e){
+    res.sendStatus(500);
+  }
 })
 
 app.listen(app.get('port'), function() {
